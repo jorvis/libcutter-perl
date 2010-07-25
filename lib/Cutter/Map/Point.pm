@@ -2,7 +2,7 @@ package Cutter::Map::Point;
 
 =head1 NAME
 
-Cutter::Map::Shape - A class for representing a point of a shape on a 
+Cutter::Map::Point - A class for representing a point of a shape on a 
 planar cutter map.
 
 =head1 SYNOPSIS
@@ -35,8 +35,8 @@ use Carp;
 {
 
     my %_attributes = (
-                        ## values may be constructed | svg
-                        source => undef,
+                        x => undef,
+                        y => undef,
                       );
 
     ## class variables
@@ -58,18 +58,17 @@ use Carp;
             }
         }
         
-        ## initialize any arrays
-        #$self->{shapes} = [] if ! defined $self->{shapes};
-        
         return $self;
     }
 
     
     ## accessors
-    sub source { return $_[0]->{source} }
+    sub x { return $_[0]->{x} }
+    sub y { return $_[0]->{y} }
 
     ## mutators
-    sub set_source { $_[0]->{source} = $_[1] }
+    sub set_x { $_[0]->{x} = $_[1] }
+    sub set_y { $_[0]->{y} = $_[1] }
         
 }
 

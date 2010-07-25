@@ -29,7 +29,9 @@ Parses a SVN map file and returns a Cutter::Map object.
 
 =head1 ASSUMPTIONS
 
-If a polyline has "cut:" in its style attribute, it has no internal pieces
+- If a polyline has "cut:" in its style attribute, it has no internal pieces.
+- No shapes cross boundaries of other shapes
+- There are no shapes within shapes within shapes (3-deep)
 
 =head1 AUTHOR
 
@@ -97,6 +99,7 @@ use XML::Twig;
         }
         
         $self->_parse_svg_file( path => $self->path );
+        $self->_calculate_internals();
         
         return $self;
     }
@@ -104,11 +107,26 @@ use XML::Twig;
     ## accessors
     sub source { return $_[0]->{source} }
     sub path   { return $_[0]->{path} }
+    sub shapes { return $_[0]->{shapes} }
 
     ## mutators
     sub set_path   { $_[0]->{path} = $_[1] }
     sub set_shapes { $_[0]->{shapes} = $_[1] }
     sub set_source { $_[0]->{source} = $_[1] }
+    
+    ## calculates which shapes are internal to which others in the map.
+    sub _calculate_internals {
+        my ($self, %args) = @_;
+        
+        for my $qry_shape ( $self->shapes ) {
+            for my $ref_shape ( $self->shapes ) {
+                ## don't compare to self
+                next if ( $qry_shape->id() eq $ref_shape->id() );
+                
+                LEFT OFF HERE
+            }
+        }
+    }
     
     
     sub _parse_svg_file {
@@ -174,24 +192,70 @@ use XML::Twig;
             croak("expected polyline style attribute to contain stroke-width");
         }
         
-        if ( $style =~ /outline\:/ ) {
+        my $id;
+        
+        if ( $style =~ /outline\:(\d+)/ ) {
             $has_internal = 1;
+            $id = "outline_$1";
 
-        } elsif ( $style =~ /cut\:/ ) {
+        } elsif ( $style =~ /cut\:(\d+)/ ) {
             $has_internal = 0;
+            $id = "cut_$1";
 
         } else {
             croak("expected polyline style attribute to have either 'outline' or 'cut'");
         } 
         
-        my $shape = new Cutter::Map::Shape();
+        ## holds pairs of points as they are parsed and before they are added to a shape
+        my @points = ();
+        my @cursor = ();
         
+        while ( $points =~ /([0-9\.]+)/g ) {
+            push @cursor, $1;
+            
+            if ( scalar @cursor == 2 ) {
+                push @points, [ $cursor[0], $cursor[1] ];
+                @cursor = ();
+            }
+        }
+
+        ## build a Shape out of the attributes we parsed
+        my $shape = new Cutter::Map::Shape(
+                        id => $id,
+                        width => $stroke_width,
+                        has_internal_shapes => $has_internal,
+                        points => \@points,
+                    );
+
         return $shape;
     }
     
 }
 
 1==1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
