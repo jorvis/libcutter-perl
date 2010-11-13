@@ -4,7 +4,7 @@ use base 'Math::Polygon';
 
 =head1 NAME
 
-Cutter::Map::Shape - A class for representing a shape on a planar cutter 
+Cutter::Map::Shape - A class for representing a shape on a planar cutter
 map.
 
 =head1 SYNOPSIS
@@ -25,13 +25,16 @@ Returns a newly created "Cutter::Map::Shape" object.
 
 =head1 AUTHOR
 
-    Joshua Orvis
-    jorvis@users.sf.net
+Joshua Orvis
+jorvis@users.sf.net
 
 =cut
 
 use strict;
 use Carp;
+use Math::Geometry;
+use Math::Geometry::Planar;
+
 
 ## class data and methods
 {
@@ -43,6 +46,10 @@ use Carp;
                         
                         ## corresponds to the 'stroke-width' style attribute
                         width => undef,
+                        
+                        internal_shapes => undef,
+                        
+                        ##points => undef,
                       );
 
     ## class variables
@@ -62,6 +69,10 @@ use Carp;
             }
         }
         
+        ## initialize any arrays
+        $self->{internal_shapes} = [] if ! defined $self->{internal_shapes};
+        ##$self->{points} = [] if ! defined $self->{points};
+                
         return $self;
     }
     
@@ -70,6 +81,7 @@ use Carp;
     ## accessors
     sub id { return $_[0]->{id} }
     sub has_internal_shapes { return $_[0]->{has_internal_shapes} }
+    sub internal_shapes { return $_[0]->{internal_shapes} }
     sub width { return $_[0]->{width} }
 
     ## mutators
@@ -82,27 +94,13 @@ use Carp;
         
         push @{ $self->{points} }, $point;
     }
+    
+    sub add_internal_shape {
+        my ($self, $shape) = @_;
+        
+        push @{ $self->{internal_shapes} }, $shape;
+    }
         
 }
 
 1==1;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

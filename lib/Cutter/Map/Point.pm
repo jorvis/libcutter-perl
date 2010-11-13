@@ -35,8 +35,8 @@ use Carp;
 {
 
     my %_attributes = (
-                        x => undef,
-                        y => undef,
+                        ## values may be constructed | svg
+                        source => undef,
                       );
 
     ## class variables
@@ -58,17 +58,18 @@ use Carp;
             }
         }
         
+        ## initialize any arrays
+        #$self->{shapes} = [] if ! defined $self->{shapes};
+        
         return $self;
     }
 
     
     ## accessors
-    sub x { return $_[0]->{x} }
-    sub y { return $_[0]->{y} }
+    sub source { return $_[0]->{source} }
 
     ## mutators
-    sub set_x { $_[0]->{x} = $_[1] }
-    sub set_y { $_[0]->{y} = $_[1] }
+    sub set_source { $_[0]->{source} = $_[1] }
         
 }
 

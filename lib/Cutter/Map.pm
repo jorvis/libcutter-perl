@@ -9,8 +9,8 @@ Cutter::Map - A class for representing a planar cutter map.
 
 =head1 DESCRIPTION
 
-A planar cutter map is a series of points defining shapes on a plane to 
-be cut out of some material.  A map can contain one or more 
+A planar cutter map is a series of points defining shapes on a plane to
+be cut out of some material. A map can contain one or more
 Cutter::Map::Shape objects.
 
 =head1 METHODS
@@ -35,8 +35,8 @@ Parses a SVN map file and returns a Cutter::Map object.
 
 =head1 AUTHOR
 
-    Joshua Orvis
-    jorvis@users.sf.net
+Joshua Orvis
+jorvis@users.sf.net
 
 =cut
 
@@ -54,7 +54,7 @@ use XML::Twig;
                         source => undef,
                         
                         ## if parsed from something, here's the source
-                        path  => undef,
+                        path => undef,
                         
                         ## populated by any of the parsing methods
                         shapes => undef,
@@ -70,7 +70,7 @@ use XML::Twig;
         my $self = bless { %_attributes }, $class;
         
         ## set any attributes passed, checking to make sure they
-        ##  were all valid
+        ## were all valid
         for (keys %args) {
             if (exists $_attributes{$_}) {
                 $self->{$_} = $args{$_};
@@ -106,11 +106,11 @@ use XML::Twig;
     
     ## accessors
     sub source { return $_[0]->{source} }
-    sub path   { return $_[0]->{path} }
+    sub path { return $_[0]->{path} }
     sub shapes { return $_[0]->{shapes} }
 
     ## mutators
-    sub set_path   { $_[0]->{path} = $_[1] }
+    sub set_path { $_[0]->{path} = $_[1] }
     sub set_shapes { $_[0]->{shapes} = $_[1] }
     sub set_source { $_[0]->{source} = $_[1] }
     
@@ -118,12 +118,21 @@ use XML::Twig;
     sub _calculate_internals {
         my ($self, %args) = @_;
         
-        for my $qry_shape ( $self->shapes ) {
-            for my $ref_shape ( $self->shapes ) {
+        for my $qry_shape ( @{ $self->shapes } ) {
+            ## if this shape isn't closed it can't truly contain other shapes
+            next unless $qry_shape->isClosed();
+        
+            for my $ref_shape ( @{ $self->shapes } ) {
                 ## don't compare to self
                 next if ( $qry_shape->id() eq $ref_shape->id() );
                 
-                LEFT OFF HERE
+                ## By owen's definition, his shapes can't overlap, so
+                #  we pick an arbitrary point to test containment.
+                my $first_point = ( $ref_shape->points )[0];
+                
+                if ( $qry_shape->contains( $first_point ) ) {
+                    $qry_shape->add_internal_shape( $ref_shape );
+                }
             }
         }
     }
@@ -204,7 +213,7 @@ use XML::Twig;
 
         } else {
             croak("expected polyline style attribute to have either 'outline' or 'cut'");
-        } 
+        }
         
         ## holds pairs of points as they are parsed and before they are added to a shape
         my @points = ();
@@ -233,46 +242,3 @@ use XML::Twig;
 }
 
 1==1;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

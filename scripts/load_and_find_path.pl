@@ -1,5 +1,15 @@
 #!/usr/bin/perl -w
 
+=head1
+
+Notes, the output should be color coded for laser on, off with indicators
+of where cuts start and end.  This could be arrows or even pop up info
+boxes.  Doable, like this:
+
+http://stackoverflow.com/questions/102457/how-to-create-an-svg-tooltip-like-box
+
+=cut
+
 use strict;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
@@ -15,5 +25,7 @@ my $shapes = $map->shapes();
 for my $shape ( @$shapes ) {
     my $points = $shape->points();
     
-    print "shape (" . $shape->id . ") has " . scalar( @$points ) . " points\n";
+    print "shape (" . $shape->id . ") has " . scalar( @$points ) . 
+          " points.  Has internal: " . $shape->has_internal_shapes . " - Count: (" .
+          scalar( @{ $shape->internal_shapes() } ) . ")\n";
 }
