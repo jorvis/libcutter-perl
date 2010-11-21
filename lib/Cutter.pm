@@ -77,6 +77,22 @@ use Cutter::Map;
         return $map;
     }
     
+    sub export_cut_xml_from_map {
+        my ($self, %args) = @_;
+        
+        if ( ! defined $args{map} ) {
+            croak("the export_cut_xml_from_map method requires a map argument");
+        }
+        
+        my $steps = $args{map}->traverse;
+        
+        for my $step ( @$steps ) {
+            print "ACTION: $$step[0], [$$step[1][0],$$step[1][1]], [$$step[2][0],$$step[2][1]]\n";
+        }
+        
+        ## LEFT OFF HERE
+    }
+    
     ## accessors
     sub type { return $_[0]->{type} }
 

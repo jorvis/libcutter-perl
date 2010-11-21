@@ -23,9 +23,10 @@ my $map = $cutter->load_map( path => $svg_file );
 
 my $shapes = $map->shapes();
 for my $shape ( @$shapes ) {
-    my $points = $shape->points();
     
-    print "shape (" . $shape->id . ") has " . scalar( @$points ) . 
+    print "shape (" . $shape->id . ") has " . $shape->point_count() . 
           " points.  Has internal: " . $shape->has_internal_shapes . " - Count: (" .
           scalar( @{ $shape->internal_shapes() } ) . ")\n";
 }
+
+$cutter->export_cut_xml_from_map( map => $map );

@@ -43,7 +43,6 @@ jorvis@users.sf.net
 use strict;
 use Carp;
 use Cutter::Map::Shape;
-use Cutter::Map::Point;
 use XML::Twig;
 
 ## class data and methods
@@ -79,11 +78,23 @@ use XML::Twig;
             }
         }
         
-        ## initialize any arrays
+        ## initialize any data structures
         $self->{shapes} = [] if ! defined $self->{shapes};
+        $self->{point_matrix} = {} if ! defined $self->{point_matrix};
+        
         
         return $self;
     }
+    
+    ## accessors
+    sub source { return $_[0]->{source} }
+    sub path { return $_[0]->{path} }
+    sub shapes { return $_[0]->{shapes} }
+
+    ## mutators
+    sub set_path { $_[0]->{path} = $_[1] }
+    sub set_shapes { $_[0]->{shapes} = $_[1] }
+    sub set_source { $_[0]->{source} = $_[1] }
     
     sub parse_from_svg {
         my ($self, %args) = @_;
@@ -100,19 +111,92 @@ use XML::Twig;
         
         $self->_parse_svg_file( path => $self->path );
         $self->_calculate_internals();
+        $self->_calculate_point_distance_matrix();
         
         return $self;
+    }    
+    
+    sub traverse {
+        my ($self, %args) = @_;
+        
+        for my $shape ( @{$self->shapes} ) { 
+            $shape->reset_traversal;
+        }
+        
+        my $shape_count_left = scalar(@{$self->shapes});
+        
+        my $steps = [];
+        
+        ## start at point 0,0
+        my $pos = [0,0];
+        
+        ## find closest shape
+        my ( $this_shape, $this_shape_point_index, $this_shape_point_distance ) =
+            $self->_find_nearest_valid_shape( point => $pos );
+        
+        print "DEBUG: Nearest shape to [0,0] is " . $this_shape->id . " at index " .
+              "$this_shape_point_index and distance $this_shape_point_distance\n";
+        
+        my $this_shape_points = $this_shape->points;
+        
+        push @$steps, [ 'off', $pos, $$this_shape_points[$this_shape_point_index] ];
+        
+        ## traverse shape, find closest shape, repeat
+        NOW WALK!
+        
+        return $steps;
     }
     
-    ## accessors
-    sub source { return $_[0]->{source} }
-    sub path { return $_[0]->{path} }
-    sub shapes { return $_[0]->{shapes} }
-
-    ## mutators
-    sub set_path { $_[0]->{path} = $_[1] }
-    sub set_shapes { $_[0]->{shapes} = $_[1] }
-    sub set_source { $_[0]->{source} = $_[1] }
+    ## finds the nearest shape to a specified point that is not already
+    #   traversed, and has no children yet to traverse.  If you've done
+    #   _calculate_point_distance_matrix you shouldn't have to call this
+    #   since proximal points to each shape are already stored.
+    sub _find_nearest_valid_shape {
+        my ( $self, %args ) = @_;
+        
+        if ( ! defined $args{point} ) {
+            croak( "Can't call the _find_nearest_valid_shape method without passing a point" );
+        }
+        
+        my $nearest_shape = undef;
+        my $nearest_shape_point_index = undef;
+        my $nearest_point_distance = undef;
+        
+        for my $shape ( @{$self->shapes} ) {
+            print "DEBUG: checking point distances on shape " . $shape->id . "\n";
+        
+            ## skip it if it's already been traversed
+            next if $shape->traversed;
+        
+            ## if this has non-traversed internal shapes, skip it
+            if ( $shape->has_internal_shapes &&
+                 $shape->internals_traversed < scalar( @{$shape->internal_shapes} ) ) {
+            
+                next;
+            }
+            
+            ## here we go
+            my $points = $shape->points;
+            
+            for ( my $i=0; $i<scalar(@$points); $i++ ) {
+                my $d = $shape->distance_between_points( $args{point}, $$points[$i] );
+                
+                print "\tindex $i distance = $d\n";
+                
+                if ( ! defined $nearest_point_distance || $d < $nearest_point_distance ) {
+                    $nearest_point_distance = $d;
+                    $nearest_shape = $shape;
+                    $nearest_shape_point_index = $i;
+                }
+            }
+        }
+        
+        if ( ! defined $nearest_shape ) {
+            croak("attempt to find nearest shape failed, no valid shapes remaining");
+        }
+        
+        return ( $nearest_shape, $nearest_shape_point_index, $nearest_point_distance );
+    }
     
     ## calculates which shapes are internal to which others in the map.
     sub _calculate_internals {
@@ -137,6 +221,45 @@ use XML::Twig;
         }
     }
     
+    ## this is expensive, and perhaps not practical for large maps
+    #   it could definitely be improved.
+    #   get it working, then make it elegant, then make it fast.  :)
+    #
+    #   Currently only does half the matrix, so no bidireectional rendundant
+    #    comparisons are made (and memory/time wasted).  Accession methods
+    #    keep track of this.
+    sub _calculate_point_distance_matrix {
+         my ($self, %args) = @_;
+
+         ## prevents us from repeating reverse calculations already done.         
+         my %compared = ();
+
+         ## this is expensive, and perhaps not practical for large maps
+         for my $shape1 ( sort {$a->id cmp $b->id} @{$self->shapes} ) {
+            my $shape1_id = $shape1->id;
+            next unless ( $shape1_id =~ /cut_(\d+)/ && $1 <= 5 );
+         
+            for my $shape2 ( sort {$a->id cmp $b->id} @{$self->shapes} ) { 
+                my $shape2_id = $shape2->id;
+                
+                next unless ( $shape2_id =~ /cut_(\d+)/ && $1 <= 5 );
+               
+                ## distance between points in the same shape aren't needed
+                next if ( $shape1->id eq $shape2->id );
+                
+                ## has the inverse already been compared?
+                if ( exists $compared{$shape2_id} && exists $compared{$shape2_id}{$shape1_id} ) {
+                    print "skipping already compared $shape1_id and $shape2_id\n";
+                    next;
+                } else {
+                    print "doing matrix calculations on $shape1_id vs $shape2_id\n";
+                    $compared{$shape1_id}{$shape2_id} = 1;
+                }
+                
+                $shape1->calculate_neighbor_distances( $shape2 );
+            }
+         }
+    }
     
     sub _parse_svg_file {
         my ($self, %args) = @_;
